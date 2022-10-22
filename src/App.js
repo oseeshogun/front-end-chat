@@ -9,7 +9,18 @@ import Preloader from './components/Preloader'
 import ChatPlaceholder from './pages/Home/components/ChatPlaceholder'
 import Chat from './pages/Home/components/Chat'
 import httpClient from './utils/client'
-import { setIsAuthenticated, setToken, setUser } from './features/user/userSlice'
+import {
+  setIsAuthenticated,
+  setToken,
+  setUser,
+} from './features/user/userSlice'
+import io from 'socket.io-client'
+import { addMessage } from './features/chat/chatSlice'
+
+const socket = io(process.env.REACT_APP_BASE_URL, {
+  reconnection: true,
+  autoConnect: false,
+})
 
 const GuestRoute = ({ children }) => {
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated)
@@ -33,6 +44,7 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   const [checkingAuthentication, setCheckingAuthentication] = useState(true)
+  const user = useSelector((state) => state.user.data)
 
   const dispatch = useDispatch()
 
@@ -64,6 +76,30 @@ const App = () => {
         setCheckingAuthentication(false)
       })
   }, [dispatch])
+
+  useEffect(() => {
+    if (!user || socket.connected) return () => {}
+    socket.connect()
+    socket.on('connect', () => {
+      console.log('Is connected')
+      socket.emit('join', user.id)
+    })
+
+    socket.on('new_text', (data) => {
+      console.log(data)
+      dispatch(addMessage(data))
+    })
+
+    socket.on('disconnect', () => {
+      console.log('socket disconnected')
+    })
+
+    return () => {
+      socket.off('connect')
+      socket.off('disconnect')
+      socket.off('pong')
+    }
+  }, [dispatch, user])
 
   if (checkingAuthentication) {
     return (
@@ -110,4 +146,5 @@ const App = () => {
   )
 }
 
+export { socket }
 export default App
