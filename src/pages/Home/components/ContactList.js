@@ -3,14 +3,15 @@ import httpClient from '../../../utils/client'
 import { useDispatch, useSelector } from 'react-redux'
 import { setUsers } from '../../../features/user/userSlice'
 import { Link } from 'react-router-dom'
+import { addManyMessages } from '../../../features/chat/chatSlice'
+import { getChatId } from '../../../utils/utils'
 
 const ContactList = ({ className }) => {
   const token = useSelector((state) => state.user.token)
   const user = useSelector((state) => state.user.data)
   const users = useSelector((state) => state.user.users)
-  const dispatch = useDispatch()
 
-  console.log(user)
+  const dispatch = useDispatch()
 
   useEffect(() => {
     httpClient(token)
@@ -18,6 +19,23 @@ const ContactList = ({ className }) => {
       .then((response) => {
         console.log(response.data)
         dispatch(setUsers(response.data))
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+
+    httpClient(token)
+      .get('/chats/first')
+      .then((response) => {
+        console.log(response.data)
+        const messages = response.data.map((info) => ({
+          id: info.message.localId,
+          text: info.message.text,
+          chatId: info.chatId,
+          sender: { id: info.message.sender },
+          receiver: { id: info.message.receiver },
+        }))
+        dispatch(addManyMessages(messages))
       })
       .catch((err) => {
         console.log(err)
@@ -53,25 +71,38 @@ const ContactList = ({ className }) => {
         <h4 className="text-gray-500 text-xl font-bold">Contacts</h4>
         <ul className="list-none py-4">
           {users.map((user, index) => (
-            <Link
-              key={index}
-              className="flex items-center border-b-[1px] border-gray-100 cursor-pointer hover:bg-slate-100 rounded-lg px-4 pt-2 pb-2"
-              to={`/chat/${user.id}`}
-            >
-              <img
-                src={`https://i.pravatar.cc/250?index=${index}`}
-                alt="Contact"
-                className="h-[50px] w-[50px] object-cover rounded-full"
-              />
-              <div className="ml-4">
-                <h5 className="text-2xl font-w600">{user.username}</h5>
-                <p className="text-gray-600 text-[14px]">Salut, Dev</p>
-              </div>
-            </Link>
+            <ContactItem chatter={user} key={user.id} />
           ))}
         </ul>
       </div>
     </div>
+  )
+}
+
+const ContactItem = ({ chatter }) => {
+  const allMessages = useSelector((state) => state.chat.messages)
+  const user = useSelector((state) => state.user.data)
+  const chatId = getChatId(user.id, chatter.id)
+  const messages = allMessages.filter((message) => message.chatId === chatId)
+  const message = messages.length > 0 ? messages[messages.length-1] : null
+
+  return (
+    <Link
+      className="flex items-center border-b-[1px] border-gray-100 cursor-pointer hover:bg-slate-100 rounded-lg px-4 pt-2 pb-2"
+      to={`/chat/${chatter.id}`}
+    >
+      <img
+        src={`https://i.pravatar.cc/250?index=${chatter.id}`}
+        alt="Contact"
+        className="h-[50px] w-[50px] object-cover rounded-full"
+      />
+      <div className="ml-4">
+        <h5 className="text-2xl font-w600">{chatter.username}</h5>
+        {message ? (
+          <p className="text-gray-600 text-[14px]">{message.text}</p>
+        ) : null}
+      </div>
+    </Link>
   )
 }
 

@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { getUniqueItemsByProperties } from '../../utils/utils'
 
 const initialState = {
   messages: [],
