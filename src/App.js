@@ -16,6 +16,8 @@ import {
 } from './features/user/userSlice'
 import io from 'socket.io-client'
 import { addMessage } from './features/chat/chatSlice'
+import { store } from './app/store'
+import { Provider } from 'react-redux'
 
 const socket = io(process.env.REACT_APP_BASE_URL, {
   reconnection: true,
@@ -43,6 +45,14 @@ const ProtectedRoute = ({ children }) => {
 }
 
 const App = () => {
+  return (
+    <Provider store={store}>
+      <Main />
+    </Provider>
+  )
+}
+
+const Main = () => {
   const [checkingAuthentication, setCheckingAuthentication] = useState(true)
   const user = useSelector((state) => state.user.data)
 
@@ -135,8 +145,7 @@ const App = () => {
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>
-          }
-        >
+          }>
           <Route path="" element={<ChatPlaceholder />} />
           <Route path="chat/:id" element={<Chat />} />
         </Route>
