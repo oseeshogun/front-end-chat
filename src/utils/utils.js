@@ -2,19 +2,12 @@ const getChatId = (idOne, idTwo) => {
   return [idOne, idTwo].sort().join('')
 }
 
-const isPropValuesEqual = (subject, target, propNames) =>
-  propNames.every((propName) => subject[propName] === target[propName])
-
 const getUniqueItemsByProperties = (items, propNames) => {
-  const propNamesArray = Array.from(propNames)
+  const ids = items.map((o) => o[propNames])
 
-  return items.filter(
-    (item, index, array) =>
-      index ===
-      array.findIndex((foundItem) =>
-        isPropValuesEqual(foundItem, item, propNamesArray)
-      )
-  )
+  const filtered = items.filter(({ id }, index) => !ids.includes(id, index + 1))
+
+  return filtered
 }
 
 export { getChatId, getUniqueItemsByProperties }

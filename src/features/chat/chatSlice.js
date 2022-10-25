@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { getUniqueItemsByProperties } from '../../utils/utils'
 
 const initialState = {
   messages: [],
@@ -16,16 +17,10 @@ export const chatSlice = createSlice({
       }
     },
     addManyMessages: (state, { payload }) => {
-      for (let currentMessage of payload) {
-        if (
-          state.messages.findIndex(
-            (message) => message.id === currentMessage.id
-          ) === -1
-        ) {
-          console.log(currentMessage)
-          state.messages = [...state.messages, currentMessage]
-        }
-      }
+      state.messages = getUniqueItemsByProperties(
+        [...payload, ...state.messages],
+        'id'
+      )
     },
   },
 })

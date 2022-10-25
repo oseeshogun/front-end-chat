@@ -32,6 +32,7 @@ const ContactList = ({ className }) => {
           id: info.message.localId,
           text: info.message.text,
           chatId: info.chatId,
+          image: info.message.image,
           sender: { id: info.message.sender },
           receiver: { id: info.message.receiver },
         }))
@@ -84,7 +85,7 @@ const ContactItem = ({ chatter }) => {
   const user = useSelector((state) => state.user.data)
   const chatId = getChatId(user.id, chatter.id)
   const messages = allMessages.filter((message) => message.chatId === chatId)
-  const message = messages.length > 0 ? messages[messages.length-1] : null
+  const message = messages.length > 0 ? messages[messages.length - 1] : null
 
   return (
     <Link

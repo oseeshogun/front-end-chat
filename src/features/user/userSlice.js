@@ -4,7 +4,7 @@ const initialState = {
   data: null,
   token: '',
   isAuthenticated: false,
-  users: []
+  users: [],
 }
 
 export const userSlice = createSlice({
@@ -22,10 +22,11 @@ export const userSlice = createSlice({
     },
     setUsers: (state, { payload }) => {
       state.users = payload
-    }
+    },
   },
 })
 
-export const { setUser, setUsers, setIsAuthenticated, setToken } = userSlice.actions
+export const { setUser, setUsers, setIsAuthenticated, setToken } =
+  userSlice.actions
 
 export default userSlice.reducer

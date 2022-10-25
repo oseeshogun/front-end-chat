@@ -83,12 +83,12 @@ const Login = () => {
                   {loading ? 'Veuillez patienter...' : 'Se connecter'}
                 </button>
                 <p className="text-sm font-semibold mt-2 pt-1 mb-0">
-                  Vous n'avez pas de compte ?
+                  Vous n&apos;avez pas de compte ?
                   <Link
                     to="/register"
                     className="text-sky-600 hover:text-red-700 focus:text-red-700 transition duration-200 ease-in-out"
                   >
-                    S'enregistrer
+                    S&pos;enregistrer
                   </Link>
                 </p>
               </div>
