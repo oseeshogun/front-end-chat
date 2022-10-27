@@ -17,6 +17,7 @@ const Chat = () => {
   const user = useSelector((state) => state.user.data)
   const [text, setText] = useState('')
   const [inputFile, setInputFile] = useState(null)
+  const [sending, setSending] = useState(false)
   const inputFileRef = useRef()
   const formRef = useRef()
   const dispatch = useDispatch()
@@ -63,31 +64,38 @@ const Chat = () => {
   const sendText = async (e) => {
     e.preventDefault()
     let fileUrl = null
-    if (inputFile) {
-      const formData = new FormData()
-      formData.append('file', inputFile)
-      formData.append('upload_preset', process.env.REACT_APP_UPLOAD_PRESET)
-      const response = await axios.post(
-        `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUD_NAME}/upload`,
-        formData
-      )
-      const { url } = response.data
-      fileUrl = url
+    setSending(true)
+    try {
+      if (inputFile) {
+        const formData = new FormData()
+        formData.append('file', inputFile)
+        formData.append('upload_preset', process.env.REACT_APP_UPLOAD_PRESET)
+        const response = await axios.post(
+          `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUD_NAME}/upload`,
+          formData
+        )
+        const { url } = response.data
+        fileUrl = url
+      }
+      const message = {
+        text,
+        id: uuidv4(),
+        sender: user,
+        receiver: chatter,
+        chatId,
+        ...(fileUrl && { image: fileUrl }),
+      }
+      socket.emit('text', message)
+      dispatch(addMessage(message))
+      setText('')
+      setInputFile(null)
+      inputFileRef.current.value = ''
+      formRef.current.reset()
+    } catch (e) {
+      console.log(e)
+    } finally {
+      setSending(false)
     }
-    const message = {
-      text,
-      id: uuidv4(),
-      sender: user,
-      receiver: chatter,
-      chatId,
-      ...(fileUrl && { image: fileUrl }),
-    }
-    socket.emit('text', message)
-    dispatch(addMessage(message))
-    setText('')
-    setInputFile(null)
-    inputFileRef.current.value = ''
-    formRef.current.reset()
   }
 
   const fileChoosen = (e) => {
@@ -153,54 +161,62 @@ const Chat = () => {
           </button>
         </div>
       ) : null}
-      <form
-        onSubmit={sendText}
-        className="w-full bg-white flex items-center rounded-2xl px-1 py-2"
-        ref={formRef}
-      >
-        <div>
-          <input
-            type="file"
-            id="file"
-            className="hidden"
-            onChange={fileChoosen}
-            accept="image/x-png,image/gif,image/jpeg"
-            ref={inputFileRef}
-          />
-          <label
-            htmlFor="file"
-            className="cursor-pointer rounded-full bg-slate-50 hover:bg-slate-100 h-[50px] w-[50px] flex items-center justify-center"
-          >
-            <img
-              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAEk0lEQVRoge2Za2hbZRjHf885abrabpPi1jRtuoo3FP2gA8EhQ1EmdWzgnBcUJhttqjDH2EBE/VCcqPuiKBujbdyYF7yA2xj6QYV6YWBhCN6FOba2ydJOvLbDNmvOefzQnNM4m+RNmrQqfT69l/M8z++f93pOYMEWbMH+0yZzkaT5hXiNs8TdKK51nwrXgi4DUsApQftc5eBIdMV3pcSuuIDGnvjdiL4IRPI85oK+WR1wtw5svvT3YuJXTkCXWqHw0HMi8lgRXidskbWJ9shJUwerBLTC1qVWKBzv/Tu8DIrKNsfl8vqlY9XiBpYh0gYcAjTz0JWO6vutB05fbJqq/CPgw7PFa1J4OzAmmxM7IuMzuYR7htar8AZQN+Ugrw1HI5tM0pVXwEzwyv6RZKSDLnHzuWZEHMkwOeBeN9zR+kOhlOWbQrOAB0hGW44ChzNVG2yjESiPgFnCT/tILKt2m4nP7AWUCR7AUvt4VrXVyKeYBP+wMsIDBIOpc1nVWhOf0gWUGR5gcrKqxa8IP5n4BEpJVBC+S63GpsQ+VFtFA3clO8N/moR1cdr8jVH5ysSneAEG8KFwvBfYgoCSPgzcUShsuDt5kUp6p1cXkXdMcIqbQobw2f2IDJjExUofwL8vyaA16m+pec18BEqAn+pvfsQkrsK9XpOIbk/saJnx1L7QzEZAVRqb4ntzwhfqLyIuyPPJ9pYjRlyYXCVK/uULwJdpFys4AuFwfPe/FR4KjECod3CTIAfnFN7bgtEWe0w25LrBepZzETfsO7lcYM90i74+kmypOLy/BQPOYj0EtOUTkHMKWVXVT4AsBhDorx0/3+4t2ErCX7Cgh/LB5xTQ8OpILarRTNV1XIme3HZFCqAxFt81F/Cq7B8+U2ALziXAmphcA9QAIHr4bGfkG4Bw98ANwONzAW+6oGeeQqJr/LJr+Seiir0dsKcqfDjf8LkFZN3FHdX+LGG3+IngqfmGzyeg2WeuCY5ktV/iFeomUl/PN3weATLplWqc8aqsjj+8wrm64GXzDZ9HgP7ilcYdu3m6XY75JUeenG94yHGQiXBCldsBbFduBb7NJNsjwsbMYw+EYkN16sizuKnTYldfLRJ/Glg9V/CQew185CcR7vfKI9HIpyA9vlBlvWVpvxUInhXRT7LhgVcqDZ9TwMSiVB/KaCbVqlBP3D/O65eOPpotYgZzBHYNt1ceHvJc5hp7h54BvHmemHTdG3/ubB32+2NDq0Vlq6KrQJeA/CZCn7jWS2eizV8CFXnxNxbQHIvXO6rfAw2Zpi8mXXddtoh81nrg9KJU2oqBPOi1lRse8lzmEu2RX4F7BLwtdWWVZR0PxQbWFgoajg1cn0rbn1UaHgzeyEKxwYcslV4F/zxQ9HML3nJc6+Nqx02k6qrPBybSTY7l3ASyQZR12bEF9ibPRLaVG95IAEC4e/BmtXgXZHmR8dOC7kx2rHi5BDYjM3qpT3auOGYF7WtUZDdg8rVABXnPRlZWEh5K+H9gee+phoBUrVPVO1GuQmgEgghJlAGFDwKOHE08HPmxArwLtmAL9n+zvwB6AE8Izr8njQAAAABJRU5ErkJggg=="
-              alt="Fichier"
-              className="h-[30px] w-[30px]"
+      {sending ? null : (
+        <form
+          onSubmit={sendText}
+          className="w-full bg-white flex items-center rounded-2xl px-1 py-2"
+          ref={formRef}>
+          <div>
+            <input
+              type="file"
+              id="file"
+              className="hidden"
+              onChange={fileChoosen}
+              accept="image/x-png,image/gif,image/jpeg"
+              ref={inputFileRef}
             />
-          </label>
-        </div>
-        <input
-          type="text"
-          className="w-full rounded-2xl px-3 py-1 resize-none scrollbar-none outline-none"
-          placeholder="Votre Message..."
-          required
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div>
-          {text || inputFile ? (
-            <button
-              type="submit"
-              className="rounded-full bg-slate-50 h-[50px] w-[50px] flex items-center justify-center"
-            >
+            <label
+              htmlFor="file"
+              className="cursor-pointer rounded-full bg-slate-50 hover:bg-slate-100 h-[50px] w-[50px] flex items-center justify-center">
               <img
-                src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAEbElEQVRoge2YzU9cVRiHn3PO/ZgZBgYKVLFNjDsjIbqSFpO68CPGxvDRjHTTpIl/golbMX4vjBtdGVcu3BibJmpSo8ZYLCQuKlalxkjTATuF1gEGkPlg7nFBpzMw9965d2CgJjzLmXPe9/d7z3vOPffCAQcc8L9G7LcAT7QWg/M8Lh1GNQytLhbWvum1+7YPM/ZDmx9Dc/oxLRkVaUaBhzSwksnzb7a44Tb+njAwmNaPCIcXtWAUeLi6LVYyebL/5InEjSm3uftmYOSGftCBIQ1JoXkCUdvPZfEA0pQfusXZ0z0wMqePOpJTGpICBvzyV4tXhtyYHIjbCOFsH9f0FRie052O4qTQnHHgKUD4Va1UdJifXUWXKr9ZlvrJTTw0ycDJ67rDsHhBOCS14Dmhg+VZXFjn+m9LHLo/ijJkRaTN+15zdq2FkhmdKOQZFA5JBM8CVtC5pQ2H1PQyC6lVOntaiLZW/CpTFiYHWm2vuTtageSsjhYkTwtBspjjlIBY2JIsLeSYuZKhmCsRazO3iAewbDXhNz+0gbPXdGTR4hkhSBZhWEA8bAyAjaLD7NXNqgMoQ9LeHa0VaMv3/OIEqldSa7WR5riGM8BpoC285ApLt3Jc+yVDIVfZqZ0PxIjGzS3jDEutTxyPx/xiea7AmNZyKs2AA8limtPA4Z2Ihq29Xk1Lm1UjHsC0xMV6MV0NDP2tX/k5zcvA4d3a5cu3c8xMba06bLZOojvioU6+Wy+uq76hG/o20BleZi1eVS/TdaSFSEttHQ1brU0ci9fdX9LtR6F5CSiE1FrDSibPr+PznuJjbZareADLkt8FyeFq4NwRcV4LhoF8QK1bcEqa1NVlpicXyK25XiLvnDoerQMok3eC5PJt8cG0fl5oPgc8HyTbWVnMMzOV8RRexqt1AExbZi8da00Eyee6AmXO94ivtGCEACtxt+oT3lUv05Lwbh0A01YX6uUr42sAgplYXcxz5eJN0n9l0do/nu+pw2ZLaMt4u56u6vGBcGsnp6SZ+zPLzZn6wsv4tQ6AGVGZS/3xwCdg3RUos30lVhYLgateJt7u3zoApim/DKoJQhiAionU70ul6Yn5ur1ejWFKEl21d51qBGAJ+XoYTQ09aHs+SgWseSVL99E4dlT5DrMj6tZ4fzzUlSXUCjRKPGHVFQ+gbHUubOymGwjSOrD5nmkr/UbY+M01IKDjvigiQBYrotJf98Vmw6ZoqoF4u40dC/bOpCz5WSM5mmbAsCSJzmA3ECEEhnLebChPI5Pqcrd1gh1yVlSlvu1rmW8kVWMrIBj3+7ut3caOBq+NYapPG9JBk77MnZhafzW3XBgL8oQWUuiOQ61dF3pFppFcTdkDPzwafS2SsMZ8P8HdwYqomUbFQxM3cVAT0pKf7CRPU4/ReiaEFFoaEd/vPvVo+pPYz4QVNf74vle4vzAHZE/uQl4mDJOPdxp7TwxArQmphENb9IO9yr9rPHl5/a3+H7OlE5fXv9hvLQcccMA9wH9yVnqIzvQo3QAAAABJRU5ErkJggg=="
-                alt="send"
+                src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAEk0lEQVRoge2Za2hbZRjHf885abrabpPi1jRtuoo3FP2gA8EhQ1EmdWzgnBcUJhttqjDH2EBE/VCcqPuiKBujbdyYF7yA2xj6QYV6YWBhCN6FOba2ydJOvLbDNmvOefzQnNM4m+RNmrQqfT69l/M8z++f93pOYMEWbMH+0yZzkaT5hXiNs8TdKK51nwrXgi4DUsApQftc5eBIdMV3pcSuuIDGnvjdiL4IRPI85oK+WR1wtw5svvT3YuJXTkCXWqHw0HMi8lgRXidskbWJ9shJUwerBLTC1qVWKBzv/Tu8DIrKNsfl8vqlY9XiBpYh0gYcAjTz0JWO6vutB05fbJqq/CPgw7PFa1J4OzAmmxM7IuMzuYR7htar8AZQN+Ugrw1HI5tM0pVXwEzwyv6RZKSDLnHzuWZEHMkwOeBeN9zR+kOhlOWbQrOAB0hGW44ChzNVG2yjESiPgFnCT/tILKt2m4nP7AWUCR7AUvt4VrXVyKeYBP+wMsIDBIOpc1nVWhOf0gWUGR5gcrKqxa8IP5n4BEpJVBC+S63GpsQ+VFtFA3clO8N/moR1cdr8jVH5ysSneAEG8KFwvBfYgoCSPgzcUShsuDt5kUp6p1cXkXdMcIqbQobw2f2IDJjExUofwL8vyaA16m+pec18BEqAn+pvfsQkrsK9XpOIbk/saJnx1L7QzEZAVRqb4ntzwhfqLyIuyPPJ9pYjRlyYXCVK/uULwJdpFys4AuFwfPe/FR4KjECod3CTIAfnFN7bgtEWe0w25LrBepZzETfsO7lcYM90i74+kmypOLy/BQPOYj0EtOUTkHMKWVXVT4AsBhDorx0/3+4t2ErCX7Cgh/LB5xTQ8OpILarRTNV1XIme3HZFCqAxFt81F/Cq7B8+U2ALziXAmphcA9QAIHr4bGfkG4Bw98ANwONzAW+6oGeeQqJr/LJr+Seiir0dsKcqfDjf8LkFZN3FHdX+LGG3+IngqfmGzyeg2WeuCY5ktV/iFeomUl/PN3weATLplWqc8aqsjj+8wrm64GXzDZ9HgP7ilcYdu3m6XY75JUeenG94yHGQiXBCldsBbFduBb7NJNsjwsbMYw+EYkN16sizuKnTYldfLRJ/Glg9V/CQew185CcR7vfKI9HIpyA9vlBlvWVpvxUInhXRT7LhgVcqDZ9TwMSiVB/KaCbVqlBP3D/O65eOPpotYgZzBHYNt1ceHvJc5hp7h54BvHmemHTdG3/ubB32+2NDq0Vlq6KrQJeA/CZCn7jWS2eizV8CFXnxNxbQHIvXO6rfAw2Zpi8mXXddtoh81nrg9KJU2oqBPOi1lRse8lzmEu2RX4F7BLwtdWWVZR0PxQbWFgoajg1cn0rbn1UaHgzeyEKxwYcslV4F/zxQ9HML3nJc6+Nqx02k6qrPBybSTY7l3ASyQZR12bEF9ibPRLaVG95IAEC4e/BmtXgXZHmR8dOC7kx2rHi5BDYjM3qpT3auOGYF7WtUZDdg8rVABXnPRlZWEh5K+H9gee+phoBUrVPVO1GuQmgEgghJlAGFDwKOHE08HPmxArwLtmAL9n+zvwB6AE8Izr8njQAAAABJRU5ErkJggg=="
+                alt="Fichier"
                 className="h-[30px] w-[30px]"
               />
-            </button>
-          ) : null}
+            </label>
+          </div>
+          <input
+            type="text"
+            className="w-full rounded-2xl px-3 py-1 resize-none scrollbar-none outline-none"
+            placeholder="Votre Message..."
+            required
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div>
+            {text || inputFile ? (
+              <button
+                type="submit"
+                className="rounded-full bg-slate-50 h-[50px] w-[50px] flex items-center justify-center">
+                <img
+                  src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABmJLR0QA/wD/AP+gvaeTAAAEbElEQVRoge2YzU9cVRiHn3PO/ZgZBgYKVLFNjDsjIbqSFpO68CPGxvDRjHTTpIl/golbMX4vjBtdGVcu3BibJmpSo8ZYLCQuKlalxkjTATuF1gEGkPlg7nFBpzMw9965d2CgJjzLmXPe9/d7z3vOPffCAQcc8L9G7LcAT7QWg/M8Lh1GNQytLhbWvum1+7YPM/ZDmx9Dc/oxLRkVaUaBhzSwksnzb7a44Tb+njAwmNaPCIcXtWAUeLi6LVYyebL/5InEjSm3uftmYOSGftCBIQ1JoXkCUdvPZfEA0pQfusXZ0z0wMqePOpJTGpICBvzyV4tXhtyYHIjbCOFsH9f0FRie052O4qTQnHHgKUD4Va1UdJifXUWXKr9ZlvrJTTw0ycDJ67rDsHhBOCS14Dmhg+VZXFjn+m9LHLo/ijJkRaTN+15zdq2FkhmdKOQZFA5JBM8CVtC5pQ2H1PQyC6lVOntaiLZW/CpTFiYHWm2vuTtageSsjhYkTwtBspjjlIBY2JIsLeSYuZKhmCsRazO3iAewbDXhNz+0gbPXdGTR4hkhSBZhWEA8bAyAjaLD7NXNqgMoQ9LeHa0VaMv3/OIEqldSa7WR5riGM8BpoC285ApLt3Jc+yVDIVfZqZ0PxIjGzS3jDEutTxyPx/xiea7AmNZyKs2AA8limtPA4Z2Ihq29Xk1Lm1UjHsC0xMV6MV0NDP2tX/k5zcvA4d3a5cu3c8xMba06bLZOojvioU6+Wy+uq76hG/o20BleZi1eVS/TdaSFSEttHQ1brU0ci9fdX9LtR6F5CSiE1FrDSibPr+PznuJjbZareADLkt8FyeFq4NwRcV4LhoF8QK1bcEqa1NVlpicXyK25XiLvnDoerQMok3eC5PJt8cG0fl5oPgc8HyTbWVnMMzOV8RRexqt1AExbZi8da00Eyee6AmXO94ivtGCEACtxt+oT3lUv05Lwbh0A01YX6uUr42sAgplYXcxz5eJN0n9l0do/nu+pw2ZLaMt4u56u6vGBcGsnp6SZ+zPLzZn6wsv4tQ6AGVGZS/3xwCdg3RUos30lVhYLgateJt7u3zoApim/DKoJQhiAionU70ul6Yn5ur1ejWFKEl21d51qBGAJ+XoYTQ09aHs+SgWseSVL99E4dlT5DrMj6tZ4fzzUlSXUCjRKPGHVFQ+gbHUubOymGwjSOrD5nmkr/UbY+M01IKDjvigiQBYrotJf98Vmw6ZoqoF4u40dC/bOpCz5WSM5mmbAsCSJzmA3ECEEhnLebChPI5Pqcrd1gh1yVlSlvu1rmW8kVWMrIBj3+7ut3caOBq+NYapPG9JBk77MnZhafzW3XBgL8oQWUuiOQ61dF3pFppFcTdkDPzwafS2SsMZ8P8HdwYqomUbFQxM3cVAT0pKf7CRPU4/ReiaEFFoaEd/vPvVo+pPYz4QVNf74vle4vzAHZE/uQl4mDJOPdxp7TwxArQmphENb9IO9yr9rPHl5/a3+H7OlE5fXv9hvLQcccMA9wH9yVnqIzvQo3QAAAABJRU5ErkJggg=="
+                  alt="send"
+                  className="h-[30px] w-[30px]"
+                />
+              </button>
+            ) : null}
+          </div>
+        </form>
+      )}
+      {sending ? (
+        <div className="bg-white flex justify-center items-center rounded-2xl py-3">
+          <img
+            className="h-10 w-10"
+            src="https://icons8.com/preloaders/preloaders/1488/Iphone-spinner-2.gif"
+            alt="Chargement..."
+          />
         </div>
-      </form>
+      ) : null}
     </div>
   )
 }
@@ -220,18 +236,11 @@ const MessageItem = ({ message }) => {
 
   const isMine = message.sender.id === user.id
 
-  if (!isMine) {
-    return (
-      <div className="w-full flex justify-start my-2">
-        <div className="w-[40%] px-5 py-2 rounded-2xl bg-slate-300">
-          {message.text}
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="w-full flex justify-end my-2">
+    <div
+      className={`w-full flex ${
+        isMine ? 'justify-end' : 'justify-start'
+      } my-2`}>
       <div className="w-[40%] px-5 py-2 rounded-2xl bg-sky-500 text-white text-right">
         {message.image ? (
           <div>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import httpClient from '../../../utils/client'
 import { useDispatch, useSelector } from 'react-redux'
 import { setUsers } from '../../../features/user/userSlice'
@@ -13,16 +13,29 @@ const ContactList = ({ className }) => {
 
   const dispatch = useDispatch()
 
-  useEffect(() => {
+  const [loading, setLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+
+  const getUsers = () => {
     httpClient(token)
       .get('/users')
       .then((response) => {
         console.log(response.data)
         dispatch(setUsers(response.data))
+        setIsSuccess(true)
       })
       .catch((err) => {
         console.log(err)
+        setIsSuccess(false)
       })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
+  useEffect(() => {
+    setLoading(true)
+    getUsers()
 
     httpClient(token)
       .get('/chats/first')
@@ -45,8 +58,7 @@ const ContactList = ({ className }) => {
 
   return (
     <div
-      className={`px-2 lg:px-0 py-2 lg:py-0 lg:mx-6 absolute lg:static bg-slate-200 lg:bg-inherit w-full lg:w-[30%] h-full flex flex-col ${className}`}
-    >
+      className={`px-2 lg:px-0 py-2 lg:py-0 lg:mx-6 absolute lg:static bg-slate-200 lg:bg-inherit w-full lg:w-[30%] h-full flex flex-col ${className}`}>
       <div className="bg-sky-500 lg:hidden mb-2 px-3 py-2 rounded-2xl text-white flex justify-between items-center">
         <h4 className="font-bold text-xl">{user.username}</h4>
         <img
@@ -75,6 +87,24 @@ const ContactList = ({ className }) => {
             <ContactItem chatter={user} key={user.id} />
           ))}
         </ul>
+        {loading && (
+          <div className="h-full flex justify-center items-center">
+            <img
+              className="h-16 w-16"
+              src="https://icons8.com/preloaders/preloaders/1488/Iphone-spinner-2.gif"
+              alt="Chargement..."
+            />
+          </div>
+        )}
+        {!loading && !isSuccess && (
+          <div className="h-full flex justify-center items-center">
+            <button
+              className="bg-sky-500 text-white text-md rounded-sm py-2 px-6 shadow-lg"
+              onClick={() => getUsers()}>
+              Réessayer
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -90,8 +120,7 @@ const ContactItem = ({ chatter }) => {
   return (
     <Link
       className="flex items-center border-b-[1px] border-gray-100 cursor-pointer hover:bg-slate-100 rounded-lg px-4 pt-2 pb-2"
-      to={`/chat/${chatter.id}`}
-    >
+      to={`/chat/${chatter.id}`}>
       <img
         src={`https://i.pravatar.cc/250?index=${chatter.id}`}
         alt="Contact"
