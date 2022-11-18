@@ -13,6 +13,7 @@ const ContactList = ({ className }) => {
 
   const dispatch = useDispatch()
 
+  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -56,13 +57,18 @@ const ContactList = ({ className }) => {
       })
   }, [dispatch, token])
 
+  const usersFiltered = users.filter((user) => user.username.includes(search))
+
   return (
     <div
       className={`px-2 lg:px-0 py-2 lg:py-0 lg:mx-6 absolute lg:static bg-slate-200 lg:bg-inherit w-full lg:w-[30%] h-full flex flex-col ${className}`}>
       <div className="bg-sky-500 lg:hidden mb-2 px-3 py-2 rounded-2xl text-white flex justify-between items-center">
         <h4 className="font-bold text-xl">{user.username}</h4>
         <img
-          src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250"
+          src={
+            user.avatar ||
+            'https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250'
+          }
           alt="Profile d'utilisateur"
           className="rounded-full w-[50px] h-[50px] object-cover"
         />
@@ -77,23 +83,31 @@ const ContactList = ({ className }) => {
           <input
             className="w-full p-1 outline-none"
             placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
       <div className="bg-white h-full scrollbar-none overflow-y-scroll rounded-2xl mt-[5%] p-3">
         <h4 className="text-gray-500 text-xl font-bold">Contacts</h4>
         <ul className="list-none py-4">
-          {users.map((user, index) => (
+          {usersFiltered.map((user, index) => (
             <ContactItem chatter={user} key={user.id} />
           ))}
         </ul>
+        {usersFiltered.length === 0 && !loading && (
+          <div className="h-full flex flex-col justify-center items-center">
+            <p className="mt-6 text-center">Aucun contact</p>
+          </div>
+        )}
         {loading && (
-          <div className="h-full flex justify-center items-center">
+          <div className="h-full flex flex-col justify-center items-center">
             <img
               className="h-16 w-16"
               src="https://icons8.com/preloaders/preloaders/1488/Iphone-spinner-2.gif"
               alt="Chargement..."
             />
+            <p className="mt-6 text-center">Chargement...</p>
           </div>
         )}
         {!loading && !isSuccess && (

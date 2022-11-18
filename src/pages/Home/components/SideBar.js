@@ -1,17 +1,95 @@
+import { useRef, useState } from 'react'
+import axios from 'axios'
+import httpClient from '../../../utils/client'
+import { useDispatch, useSelector } from 'react-redux'
+import { setAvatar } from '../../../features/user/userSlice'
+
 const SideBar = () => {
+  const user = useSelector((state) => state.user.data)
+  const token = useSelector((state) => state.user.token)
+  const dispatch = useDispatch()
+  const inputRef = useRef(null)
+
+  const [loading, setLoading] = useState(false)
+  const [url, setUrl] = useState(
+    user.avatar ||
+      'https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250'
+  )
+
   const logout = () => {
     localStorage.clear()
     window.location.reload()
   }
 
+  const changeAvatar = async (event) => {
+    if (event.target.files.length === 0) return
+    const value = confirm('Voulez-vous vraiment changer votre profil ?')
+    if (!value) {
+      inputRef.current.value = ''
+      return
+    }
+    setLoading(true)
+    const formData = new FormData()
+    formData.append('file', event.target.files[0])
+    formData.append('upload_preset', process.env.REACT_APP_UPLOAD_PRESET)
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUD_NAME}/upload`,
+      formData
+    )
+    const { url } = response.data
+    setUrl(url)
+    httpClient(token)
+      .put('/users/avatar/', { url })
+      .then(() => {
+        dispatch(setAvatar(url))
+        alert('Profil mise à jour !')
+      })
+      .catch((error) => {
+        console.log(error)
+        alert("Nous n'avons pas pu changer votre profil, veuillez réessayer !")
+        setUrl(
+          user.avatar ||
+            'https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250'
+        )
+      })
+      .finally(() => {
+        inputRef.current.value = ''
+        setLoading(false)
+      })
+  }
+
   return (
     <div className="bg-sky-500 h-full w-[10%] rounded-xl py-5 relative">
-      <div>
+      <div className="relative">
         <img
-          src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250"
+          src={url}
           alt="Profile d'utilisateur"
-          className="rounded-full w-[50%] mx-auto object-cover"
+          className="rounded-full w-[3.5rem] h-[3.5rem] mx-auto object-cover"
         />
+        <div className="flex justify-center mt-4">
+          {!loading && (
+            <label
+              htmlFor="avatar"
+              className=""
+              title="Changer l'image de profil">
+              <img
+                className="w-[40px] h-[40px]"
+                src="data:image/png;base64,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"
+              />
+            </label>
+          )}
+          {loading &&
+          (
+            <p>...</p>
+          )}
+          <input
+            type="file"
+            className="hidden"
+            id="avatar"
+            ref={inputRef}
+            onChange={changeAvatar}
+          />
+        </div>
       </div>
       <div className="flex justify-end mt-10">
         <div className="bg-v bg-violet-700 py-2 border-r-4 border-yellow-400 w-[70%] pl-10 rounded-tl-lg rounded-bl-lg">
