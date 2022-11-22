@@ -1,5 +1,11 @@
 import './App.css'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useParams,
+} from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Home from './pages/Home'
@@ -18,10 +24,18 @@ import io from 'socket.io-client'
 import { addMessage } from './features/chat/chatSlice'
 import { store } from './app/store'
 import { Provider } from 'react-redux'
+import { toast } from 'react-toastify'
 
 const socket = io(process.env.REACT_APP_BASE_URL, {
   reconnection: true,
   autoConnect: false,
+  reconnectionAttempts: 20,
+  reconnectionDelay: 1000 * 5,
+  auth: (cb) => {
+    cb({
+      token: localStorage.getItem('token'),
+    })
+  },
 })
 
 const GuestRoute = ({ children }) => {
@@ -53,8 +67,10 @@ const App = () => {
 }
 
 const Main = () => {
+  // const [notified, setNotified] = useState([])
   const [checkingAuthentication, setCheckingAuthentication] = useState(true)
   const user = useSelector((state) => state.user.data)
+  const { receiverId } = useParams()
 
   const dispatch = useDispatch()
 
@@ -89,6 +105,7 @@ const Main = () => {
 
   useEffect(() => {
     if (!user || socket.connected) return () => {}
+    // socket.auth
     socket.connect()
     socket.on('connect', () => {
       console.log('Is connected')
@@ -96,7 +113,10 @@ const Main = () => {
     })
 
     socket.on('new_text', (data) => {
-      console.log(data)
+      console.log(data, receiverId !== data.receiver.id)
+      if (receiverId !== data.receiver.id) {
+        toast(`${data.sender.username}: \n${data.text}`, { toastId: data.id })
+      }
       dispatch(addMessage(data))
     })
 
@@ -147,7 +167,7 @@ const Main = () => {
             </ProtectedRoute>
           }>
           <Route path="" element={<ChatPlaceholder />} />
-          <Route path="chat/:id" element={<Chat />} />
+          <Route path="chat/:receiverId" element={<Chat />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

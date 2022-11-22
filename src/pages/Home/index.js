@@ -1,6 +1,8 @@
 import SideBar from './components/SideBar'
 import ContactList from './components/ContactList'
 import { Outlet, useLocation } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Home = () => {
   const location = useLocation()
@@ -14,6 +16,7 @@ const Home = () => {
       <div className="w-[100%] absolute lg:static lg:w-[50%] h-full bg-white lg:rounded-2xl">
         <Outlet />
       </div>
+      <ToastContainer />
     </div>
   )
 }

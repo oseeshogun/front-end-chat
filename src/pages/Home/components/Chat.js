@@ -10,7 +10,7 @@ import httpClient from '../../../utils/client'
 import axios from 'axios'
 
 const Chat = () => {
-  const { id } = useParams()
+  const { receiverId } = useParams()
   const token = useSelector((state) => state.user.token)
   const users = useSelector((state) => state.user.users)
   const allMessages = useSelector((state) => state.chat.messages)
@@ -24,7 +24,7 @@ const Chat = () => {
 
   useEffect(() => {
     if (users.length === 0) return () => {}
-    const chatter = users.find((user) => user.id === id)
+    const chatter = users.find((user) => user.id === receiverId)
     const chatId = getChatId(chatter.id, user.id)
     const messages = allMessages.filter((message) => message.chatId === chatId)
     if (messages.length > 1) return () => {}
@@ -47,7 +47,7 @@ const Chat = () => {
         dispatch(addManyMessages(messages))
       })
       .catch((err) => console.log(err))
-  }, [allMessages, dispatch, id, token, user.id, users])
+  }, [allMessages, dispatch, receiverId, token, user.id, users])
 
   if (users.length === 0) {
     return (
@@ -57,7 +57,7 @@ const Chat = () => {
     )
   }
 
-  const chatter = users.find((user) => user.id === id)
+  const chatter = users.find((user) => user.id === receiverId)
   const chatId = getChatId(chatter.id, user.id)
   const messages = allMessages.filter((message) => message.chatId === chatId)
 
