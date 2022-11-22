@@ -21,7 +21,7 @@ const ContactList = ({ className }) => {
     httpClient(token)
       .get('/users')
       .then((response) => {
-        console.log(response.data)
+        console.log('Data ', response.data)
         dispatch(setUsers(response.data))
         setIsSuccess(true)
       })
@@ -136,7 +136,7 @@ const ContactItem = ({ chatter }) => {
       className="flex items-center border-b-[1px] border-gray-100 cursor-pointer hover:bg-slate-100 rounded-lg px-4 pt-2 pb-2"
       to={`/chat/${chatter.id}`}>
       <img
-        src={`https://i.pravatar.cc/250?index=${chatter.id}`}
+        src={chatter.avatar}
         alt="Contact"
         className="h-[50px] w-[50px] object-cover rounded-full"
       />

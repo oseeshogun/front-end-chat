@@ -131,7 +131,7 @@ const Chat = () => {
         <div className="flex items-center">
           <h4 className="mr-4 font-bold text-xl">{chatter.username}</h4>
           <img
-            src={`https://i.pravatar.cc/250?index=${chatter.id}`}
+            src={chatter.avatar}
             alt="Contact"
             className="h-[50px] w-[50px] object-cover rounded-full"
           />

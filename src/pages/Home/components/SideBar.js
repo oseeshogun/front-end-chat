@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import httpClient from '../../../utils/client'
 import { useDispatch, useSelector } from 'react-redux'
@@ -15,6 +15,13 @@ const SideBar = () => {
     user.avatar ||
       'https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250'
   )
+
+  useEffect(() => {
+    setUrl(
+      user.avatar ||
+        'https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250'
+    )
+  }, [user])
 
   const logout = () => {
     localStorage.clear()
@@ -78,10 +85,7 @@ const SideBar = () => {
               />
             </label>
           )}
-          {loading &&
-          (
-            <p>...</p>
-          )}
+          {loading && <p>...</p>}
           <input
             type="file"
             className="hidden"
