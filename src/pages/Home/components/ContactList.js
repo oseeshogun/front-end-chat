@@ -61,7 +61,7 @@ const ContactList = ({ className }) => {
 
   return (
     <div
-      className={`px-2 lg:px-0 py-2 lg:py-0 lg:mx-6 absolute lg:static bg-slate-200 lg:bg-inherit w-full lg:w-[30%] h-full flex flex-col ${className}`}>
+      className={`px-2 lg:px-0 py-4 lg:py-0 lg:mx-6 absolute lg:static bg-slate-200 lg:bg-inherit w-full lg:w-[30%] h-full flex flex-col ${className}`}>
       <div className="bg-sky-500 lg:hidden mb-2 px-3 py-2 rounded-2xl text-white flex justify-between items-center">
         <h4 className="font-bold text-xl">{user.username}</h4>
         <img
