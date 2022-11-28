@@ -88,7 +88,7 @@ const Login = () => {
                     to="/register"
                     className="text-sky-600 hover:text-red-700 focus:text-red-700 transition duration-200 ease-in-out"
                   >
-                    S&pos;enregistrer
+                    S'enregistrer
                   </Link>
                 </p>
               </div>
